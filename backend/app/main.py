@@ -10,12 +10,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import auth, availability, doctors, health, specialties, users
-from app.routers import appointments
-from app.routers import appointments, auth, availability, doctors, health, specialties, users
-from app.routers import doctor_panel          # ← add
-from app.routers import auth, availability, doctors, health, specialties, users, prescriptions
-from app.routers import admin
+from app.routers import (
+    admin,
+    appointments,
+    auth,
+    availability,
+    doctor_panel,
+    doctors,
+    health,
+    prescriptions,
+    specialties,
+    users,
+)
 from app.routers.ai_chat import router as ai_chat_router  
 
 

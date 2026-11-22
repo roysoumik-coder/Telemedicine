@@ -175,36 +175,41 @@ def process_chat_message(db: Session, patient: "User", req: ChatRequest) -> dict
     if conv.title is None:
         conv.title = req.message[:80]
 
-    # 2. Load short history (for conversational context)
-    history = [
-        (m.role, m.content)
-        for m in conv.messages[-6:]
-    ]
-
-    # 3. Semantic retrieval
-    chunks = retrieve_relevant_chunks(db, req.message, top_k=4)
-
-    # 4. LLM + structured validation
-    if GREETING_RE.match(req.message):
-        triage = TriageResponse(
-            answer=GREETING_REPLY,
-            urgency="routine",
-            recommended_specialty=None,
-            red_flags=[],
-        )
-    else:
-        prompt = _build_prompt(req.message, history, chunks)
-        triage = _call_llm(prompt)
-
-    # 5. Safety post-check — regex flags ALWAYS escalate urgency, never de-escalate
-    #    Regex-detected flags force the hardcoded emergency message (fail-safe).
-    all_flags = list({*triage.red_flags, *flags})
+    # 2. Emergency messages must never depend on the retrieval or LLM layers.
+    # This keeps the safety path available even when the AI provider, embeddings,
+    # or knowledge-base database query is unavailable.
     if flags:
-        triage.urgency = "emergency"
-        triage.answer = EMERGENCY_MESSAGE
-        triage.recommended_specialty = _SPECIALTY_FALLBACK
-    elif all_flags and _urgency_rank(triage.urgency) < _urgency_rank("emergency"):
-        triage.urgency = "emergency"
+        triage = TriageResponse(
+            answer=EMERGENCY_MESSAGE,
+            urgency="emergency",
+            recommended_specialty=_SPECIALTY_FALLBACK,
+            red_flags=flags,
+        )
+        all_flags = flags
+    else:
+        # 3. Load short history and retrieve context only for non-emergency chats.
+        history = [
+            (m.role, m.content)
+            for m in conv.messages[-6:]
+        ]
+        chunks = retrieve_relevant_chunks(db, req.message, top_k=4)
+
+        # 4. LLM + structured validation
+        if GREETING_RE.match(req.message):
+            triage = TriageResponse(
+                answer=GREETING_REPLY,
+                urgency="routine",
+                recommended_specialty=None,
+                red_flags=[],
+            )
+        else:
+            prompt = _build_prompt(req.message, history, chunks)
+            triage = _call_llm(prompt)
+
+        # 5. Model-reported red flags can only escalate urgency.
+        all_flags = list({*triage.red_flags})
+        if all_flags and _urgency_rank(triage.urgency) < _urgency_rank("emergency"):
+            triage.urgency = "emergency"
 
     # 6. Persist both messages
     db.add(AIMessage(conversation_id=conv.id, role="user", content=req.message))

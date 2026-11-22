@@ -6,8 +6,9 @@ database connection is actually working (useful for docker-compose
 healthchecks and for confirming local Postgres setup in Phase 1).
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -24,5 +25,11 @@ def health_check() -> dict:
 @router.get("/health/db")
 def health_check_db(db: Session = Depends(get_db)) -> dict:
     """Readiness check — confirms the API can reach PostgreSQL."""
-    db.execute(text("SELECT 1"))
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database is unavailable. Check DATABASE_URL credentials and server status.",
+        ) from exc
     return {"status": "ok", "database": "connected"}

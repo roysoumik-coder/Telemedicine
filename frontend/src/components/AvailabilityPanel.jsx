@@ -50,7 +50,7 @@ export default function AvailabilityPanel({ onError }) {
     }
   }
 
-  useEffect(() => { load(); }, []); // eslint-disable-line
+  useEffect(() => { load(); }, []);
 
   async function handleAdd(e) {
     e.preventDefault();

@@ -7,6 +7,7 @@ Never hardcode secrets, DB credentials, or API keys here.
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +34,18 @@ class Settings(BaseSettings):
     ai_chat_model: str = "openai/gpt-oss-120b"
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_dim: int = 384
+
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug(cls, value: object) -> object:
+        """Accept conventional deployment labels as well as booleans."""
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"release", "production", "prod"}:
+                return False
+            if normalized in {"development", "dev", "local"}:
+                return True
+        return value
 
 
     model_config = SettingsConfigDict(

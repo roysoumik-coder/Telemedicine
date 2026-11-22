@@ -30,3 +30,27 @@ backend/.env
 frontend/node_modules/
 frontend/.npm-cache/
 frontend/dist/
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Virtual environments
+**/.venv/
+**/venv/
+
+# Node dependencies
+**/node_modules/
+
+# Log files
+*.log
+*.err.log
+
+# Build and cache files
+**/dist/
+**/.npm-cache/
+
+# IDE
+.vscode/
