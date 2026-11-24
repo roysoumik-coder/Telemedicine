@@ -1,7 +1,8 @@
 // Thin fetch wrapper for the backend API.
 // Attaches the JWT (if present) and centralizes 401 handling.
 
-export const API_PREFIX = "/api/v1";
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+export const API_PREFIX = `${API_BASE_URL}/api/v1`;
 const TOKEN_KEY = "telemedicine_token";
 
 export function getToken() {
